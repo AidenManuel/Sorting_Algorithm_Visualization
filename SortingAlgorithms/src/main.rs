@@ -1,24 +1,23 @@
 /*****************************************************************/
-//! [Mandelbrot Set Zoom]
+//! [Sorting Algorithm Visualizer]
 /*****************************************************************/
 //!
-//! This is a program which handles the simulation and visual 
-//! rendering of a popular mathematical fractal called The 
-//! Mandelbrot Set. The set is defined by the points on the
-//! complex plane which converge on the function z^2 + c.
+//! I wanted to make a little sorting algorithm visualizer, as
+//! I've seen this sort of thing before on Youtube. Now that I
+//! have some Rust and Piston experience under my belt, I figured
+//! I'd give it a go.
 //! 
-//! This program uses the Piston game crate and OpenGL on
-//! the backend to perform all the rendering for the zoom.
-//! For the sake of parallelizing the code, Rayon was used,
-//! and after brief testing a near linear speedup was observed.
+//! As with my other Rust projects, visuals are performed using
+//! the Piston crate with OpenGL as the backend renderer. So far
+//! only Bubble Sort works, but I intend to include a whole array
+//! of interesting sorting algorithms.
 //!
 //! [Authors]
-//! Aiden Manuel (Original programming and idea),
-//! Matthew Peterson (Parallel programming and optimizations, commenting)
+//! Aiden Manuel
 //!
-//! [Class] CS 3123, Dr. Jeff Mark McNally
-//!
-//! [Date] Submitted April 11, 2024
+//! [Date] April 23, 2024
+//! 
+//! [Version] 1.0
 /*****************************************************************/
 
 // Define external libraries.
@@ -49,7 +48,6 @@ const SCREEN_HEIGHT: f64 = 700.0;
 const NUM_COLS: i32 = 100;
 
 
-
 /// [App]
 /// The App struct defines the Piston application and associated
 /// data. All fields within this structure are statically accessible
@@ -64,6 +62,7 @@ pub struct App {
     pointer: usize,
     bubble_completed: i32,
     num_cols: i32,
+    direction: i32,
 }
 
 /// [App]
@@ -75,9 +74,6 @@ impl App {
     /// the application control-flow, using callbacks. The render
     /// method is specifically meant to be where all calls to OpenGL
     /// happen, and is meant to be called every frame.
-    ///
-    /// This program implements the render method by checking the current
-    /// value in vals at each pixel and then colouring it based on the scalar
     ///
     /// Being a Piston callback, its only parameters are itself,
     /// and the Piston render arguments.
@@ -111,6 +107,7 @@ impl App {
             rectangle(background, background_fill, transform, gl);
         });
 
+        // Draw loop for the columns
         for i in 0..self.num_cols {
 
             // Handling Column Position
@@ -163,7 +160,7 @@ impl App {
             match self.choice.abs(){ 
                 0=>println!("Selection"), 
                 1=>println!("Insertion"), 
-                2=>self.bubble_step(), 
+                2=>self.bubble_step(self.direction), 
                 _=>println!("{}", self.choice),
             }
 
@@ -188,7 +185,7 @@ impl App {
     /// and support for mouse interaction. Such input is necessary
     /// for clearing the board, regenerating the board, and drawing
     /// directly to the board.
-    /// 
+
     fn event<E: GenericEvent>(&mut self, e: &E) {
         use piston::input::{Button, Key};
 
@@ -202,12 +199,27 @@ impl App {
                     Key::R => self.randomize(),
                     Key::Right => (self.choice, self.pointer, self.bubble_completed) = ((self.choice + 1) % 3, 0, 0),
                     Key::Left => (self.choice, self.pointer, self.bubble_completed) = ((self.choice - 1) % 3, 0, 0),
+                    Key::Up => {self.direction = 1; (self.pointer, self.bubble_completed) = (0, 0)},
+                    Key::Down => {self.direction = -1; (self.pointer, self.bubble_completed) = (0, 0)},
                     Key::NumPadPlus => {self.num_cols += 1; self.columns.push((self.columns.len() + 1) as i32);},
-                    Key::NumPadMinus => {self.num_cols -= 1; self.columns.pop();},
+                    Key::NumPadMinus => {self.num_cols -= 1; let biggest = self.find_largest(); self.columns.remove(biggest);},
                     _ => {}
             }
         }
     }
+
+
+    /// [Randomize]
+    /// 
+    /// This method is called any time we want to randomize the array,
+    /// since that is the best way to see sorting algorithms in action.
+    /// 
+    /// Randomization is done using the thread_rng random method, which
+    /// generates a float from 0-1. Then, based on that float we select
+    /// an index in columns, remove that value there and put it in a temp
+    /// vector, then repeat until our columns is empty. Our temp vector
+    /// is now randomized, so we copy it to the columns vector and we're
+    /// done.
 
     fn randomize(&mut self) {
         (self.pointer, self.bubble_completed) = (0, 0);
@@ -226,11 +238,25 @@ impl App {
         self.columns = temp;
     }
 
-    fn bubble_step(&mut self) {
+    /// [Bubble Step]
+    /// 
+    /// This method performs exactly one step of a bubble sort algorithm.
+    /// Doing it one step at a time is nice for visualizing exactly what
+    /// is going on, and so I opted to do it this way. 
+    /// 
+    /// We keep track of the current progress using the pointer and 
+    /// bubble_complete variables which belong to the application. Once
+    /// a pass is completed, we reset the pointer and start anew.
+    /// 
+    /// The direction parameter controls the order that we sort it in.
+    /// When set to +1 it will sort in ascending, and when set to -1 it
+    /// will be descending.
+
+    fn bubble_step(&mut self, direction: i32) {
         let i = self.pointer;
         let j = i + 1;
 
-        if self.columns[i] > self.columns[j] {
+        if direction * self.columns[i] > direction * self.columns[j] {
             let temp = self.columns[i];
             self.columns[i] = self.columns[j];
             self.columns[j] = temp;
@@ -241,6 +267,24 @@ impl App {
         } else {
             self.pointer = 0;
         }
+    }
+
+    /// [Find Largest]
+    /// 
+    /// Finds the index of the largest element in the vector, because
+    /// apparently that's not an integrated feature of vectors already
+    /// in the standard library.
+
+    fn find_largest(&mut self) -> usize {
+        let mut max: usize = 0; 
+
+        for i in 1..self.num_cols - 1 {
+            if self.columns[max] < self.columns[i as usize] {
+                max = i as usize;
+            }
+        }
+        
+        return max
     }
 }
 
@@ -279,6 +323,7 @@ fn main() {
         pointer: 0,
         bubble_completed: 0,
         num_cols: NUM_COLS,
+        direction: 1,
     };
 
     // The main piston loop, which actually runs all the app
