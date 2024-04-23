@@ -158,8 +158,8 @@ impl App {
             // Pick Sorting Algorithm
 
             match self.choice.abs(){ 
-                0=>println!("Selection"), 
-                1=>println!("Insertion"), 
+                0=>self.selection_step(), 
+                1=>self.insertion_step(), 
                 2=>self.bubble_step(self.direction), 
                 _=>println!("{}", self.choice),
             }
@@ -267,6 +267,14 @@ impl App {
         } else {
             self.pointer = 0;
         }
+    }
+
+    fn selection_step(&mut self) {
+
+    }
+
+    fn insertion_step(&mut self) {
+
     }
 
     /// [Find Largest]
