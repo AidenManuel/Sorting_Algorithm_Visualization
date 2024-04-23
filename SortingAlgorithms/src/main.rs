@@ -42,8 +42,8 @@ use rand::prelude::*;
 // All metrics pre-defined as constants
 // so that they can be used to define
 // array sizes.
-const SCREEN_WIDTH: f64 = 1000.0;
-const SCREEN_HEIGHT: f64 = 700.0;
+const SCREEN_WIDTH: f64 = 1280.0;
+const SCREEN_HEIGHT: f64 = 640.0;
 
 const NUM_COLS: i32 = 100;
 
@@ -56,7 +56,7 @@ pub struct App {
     // OpenGL drawing backend.
     gl: GlGraphics,
     paused: bool,
-    doTick: bool,
+    do_tick: bool,
     columns: Vec<i32>, 
     choice: i32,
     pointer: usize,
@@ -154,13 +154,13 @@ impl App {
     /// necessarily have to do with drawing to OpenGL.
     
     fn update(&mut self, _args: &UpdateArgs) {
-        if !self.paused || self.doTick{
+        if !self.paused || self.do_tick{
             // Pick Sorting Algorithm
 
             match self.choice.abs(){ 
-                0=>self.selection_step(), 
-                1=>self.insertion_step(), 
-                2=>self.bubble_step(self.direction), 
+                0=>self.bubble_step(self.direction), 
+                1=>self.selection_step(), 
+                2=>self.insertion_step(), 
                 _=>println!("{}", self.choice),
             }
 
@@ -173,7 +173,7 @@ impl App {
 
             // Done
 
-            self.doTick = !self.doTick;
+            self.do_tick = !self.do_tick;
         }
     }
     
@@ -189,20 +189,18 @@ impl App {
     fn event<E: GenericEvent>(&mut self, e: &E) {
         use piston::input::{Button, Key};
 
-        // Key Functions Added!
-        // Space:   pause the simulation
-        // P:       print the current information
+        // Key Functions Added! (see readme)
         if let Some(Button::Keyboard(key)) = e.press_args() {
                 match key {
                     Key::Space => {self.paused = !self.paused; if self.paused { println!("paused") } else { println!("playing") };},
-                    Key::W => self.doTick = true,
+                    Key::W => self.do_tick = true,
                     Key::R => self.randomize(),
                     Key::Right => (self.choice, self.pointer, self.bubble_completed) = ((self.choice + 1) % 3, 0, 0),
                     Key::Left => (self.choice, self.pointer, self.bubble_completed) = ((self.choice - 1) % 3, 0, 0),
                     Key::Up => {self.direction = 1; (self.pointer, self.bubble_completed) = (0, 0)},
                     Key::Down => {self.direction = -1; (self.pointer, self.bubble_completed) = (0, 0)},
                     Key::NumPadPlus => {self.num_cols += 1; self.columns.push((self.columns.len() + 1) as i32);},
-                    Key::NumPadMinus => {self.num_cols -= 1; let biggest = self.find_largest(); self.columns.remove(biggest);},
+                    Key::NumPadMinus => {let biggest = self.find_largest(); self.columns.remove(biggest); self.num_cols -= 1;},
                     _ => {}
             }
         }
@@ -286,7 +284,7 @@ impl App {
     fn find_largest(&mut self) -> usize {
         let mut max: usize = 0; 
 
-        for i in 1..self.num_cols - 1 {
+        for i in 1..self.num_cols {
             if self.columns[max] < self.columns[i as usize] {
                 max = i as usize;
             }
@@ -325,7 +323,7 @@ fn main() {
     let mut app = App {
         gl: GlGraphics::new(opengl),
         paused: false,
-        doTick: false,
+        do_tick: false,
         columns: columns,
         choice: 0,
         pointer: 0,
